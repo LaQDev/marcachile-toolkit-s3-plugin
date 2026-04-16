@@ -1,0 +1,23 @@
+name: Deploy Plugin to Preproduction
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🚚 Obtener código del repositorio
+        uses: actions/checkout@v3
+
+      - name: 🚀 Subir archivos del Plugin por SFTP
+        uses: wangyucode/sftp-upload-action@v2.0.2
+        with:
+          host: ${{ secrets.SFTP_SERVER }}
+          username: ${{ secrets.SFTP_USERNAME }}
+          password: ${{ secrets.SFTP_PASSWORD }}
+          localDir: '.'
+          remoteDir: '/home/dh_4wwubs/toolkitmarcachile.laq.cl/wp-content/plugins/marcachile-toolkit-s3-plugin'
+          exclude: '.git/**,.github/**'
