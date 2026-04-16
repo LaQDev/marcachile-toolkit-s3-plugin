@@ -1,0 +1,211 @@
+.body_plugin *{ 
+	padding:0; 
+	margin:0 auto; 
+	-webkit-transition: all 0.7s ease-out;
+	-moz-transition: all 0.7s ease-out;
+	-o-transition: all 0.7s ease-out;
+	-ms-transition: all 0.7s ease-out;
+    transition: all 0.7s ease-out; 
+    font-family: 'Kumbh Sans', sans-serif;
+    font-weight: normal;
+  } 
+  .body_plugin{   
+  padding: 1rem;
+	width:100%; 
+    height:auto; 
+	background-color: rgba(252,252,251,1);
+    background-position:50% 50%; 
+    background-repeat:no-repeat;
+	margin:0 auto; 
+}
+.body_plugin a{
+    color:blue;
+}
+.body_plugin h1{
+    font-size:1.4em;
+    margin-bottom: 1rem;
+}
+.body_plugin h2{
+    font-size:1.2em;
+    padding-top:1em;
+    margin-top:1em;
+    border-top:1px solid #ccc;
+    margin-bottom: 1rem;
+}
+.body_plugin h3{
+    font-size:1.1em;
+    margin-top:1em; 
+    font-weight: bold;
+}
+.body_plugin p{
+    font-size:1em; 
+}
+.body_plugin ul, .body_plugin ul li{
+    font-size:1em;
+    line-height:155%; 
+    list-style-type: disc;
+}
+.body_plugin form label{
+    display: block;
+    font-size: 1rem;
+}
+.body_plugin form select{
+  width: 200px;
+  margin-bottom: 30px;
+}
+.body_plugin form input.fileUpload_avatar{
+  margin-bottom: 1rem;
+}
+.body_plugin .ajax_results {
+  background: #edf8fe;
+  color: #d52828;
+  padding: 1rem 1.5rem;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+.body_plugin form input[type="submit"]{
+  font-size: .83rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  color: #fff;
+  display: inline-block;
+  width: 150px;
+  padding: .55rem 1rem;
+  border-radius: .3rem;
+  height: 2rem;
+  border: none;
+  background: #EB2C2C;
+}
+
+.body_plugin table{
+    font-size:0.9em; 
+    border:1px solid #2652d1;
+}
+.body_plugin table, .body_plugin td, .body_plugin th, .body_plugin tr { margin:0 auto; border: 1px solid #2652d1; font-weight:normal; } 
+.body_plugin td{ color:#444; }
+.body_plugin tr:hover, .body_plugin tr:hover td{ background-color:#F6EC40; color:#000; }
+.tr_1{ background-color:#fafafa; }
+.tr_2{ background-color:#fefefe; }
+
+.ajax_results{
+    background:#edf8fe; 
+    color:#d52828; 
+}
+.ajax_results li{
+    color:#d52828; 
+}
+.ajax_results li.ok{
+    color:green; 
+}
+.content_plugin *{
+	color:black; 
+}
+.content_plugin{ 
+    width:100%;
+    padding:1em 0;
+    margin:0 auto;
+    padding:1em;
+}
+.content_plugin form, .content_plugin form .cols {
+    width:100%;
+    height:auto;
+}
+/*
+.content_plugin form .cols, .content_plugin form div.grupo_inputs{
+    display: flex; 
+    text-align:left; 
+    justify-items: self-start;
+    align-items:initial; 
+}
+*/
+
+.content_plugin form div{ 
+    width:98%;
+    padding:1em 0; 
+    word-break: break-word;
+}
+.content_plugin form div.group_block{ 
+    display: block; 
+    text-align: center;
+    margin: 0 auto;
+}
+.content_plugin form div label{ 
+    margin-right: 1em;
+} 
+.content_plugin form div input[type="text"]{ 
+    width:100%;
+    padding:0.4em;
+    border:1px solid black;
+}
+.content_plugin form div input.cantidad{ 
+    width:90px;
+    border:1px solid gray;
+    text-align: right;
+    padding-right: 5px; 
+}
+
+.content_plugin form div input[type="submit"]{ 
+   padding:0.5em 1em; 
+   margin:0 auto; 
+}
+.content_plugin form div.radios{ 
+    display:flex; 
+} 
+.content_plugin form div.radios ul {
+    display: flex;
+    align-items: center; /* Default */
+    justify-content: flex-start;;
+    width: 100%;
+    /*background: #100ec1;*/
+    margin: 0;
+    padding: 0;
+}
+.content_plugin form div.radios li {
+    /*
+    display: block;
+    flex: 0 1 auto; 
+    */ 
+    width: auto;
+    margin:0 2em 0 0; 
+    list-style-type: none;
+}
+
+
+.content_plugin form div.radios label{ 
+    margin-left:0;
+    text-align:left; 
+}
+.content_plugin form div.radios p{ 
+    padding:0.5em; 
+} 
+
+.body_plugin .content_plugin ul.lista_archivos {
+    width: 700px;
+    background: #cacaca;
+    margin: 0;
+    padding: 0;
+
+    display: -ms-flexbox;         
+    display: -webkit-flex;       
+    display: flex;
+    justify-content: space-between;
+    /*
+    -webkit-flex-flow: wrap column; 
+    flex-flow: wrap column;
+    */
+   
+}
+.body_plugin .content_plugin ul.lista_archivos li {
+    list-style-type: none;
+    background: #fafafa; 
+    width: 200px;
+    margin: 0 20px 0 0;
+}
+.li_file{
+    margin-bottom: 20px;
+    margin-right: 20px;
+}
+.li_file img{
+    width:100%; 
+    max-width:250px;
+}

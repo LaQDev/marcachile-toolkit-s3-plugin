@@ -1,0 +1,21 @@
+{
+	"name" : "toolkit_plugin/toolkit_plugin",
+	"description" : "Plugin Toolkit",
+	"type" : "project",
+	"license" : "propietary",
+	"authors" : [{
+			"name" : "Grover Campos",
+			"email" : "grover@gttech.pe"
+		}, {
+			"name" : "David Quevedo",
+			"email" : "david@gttech.pe"
+		}
+	],
+	"support" : {
+		"email" : "dev@redon.cl"
+	},
+	"require" : {
+		"phpoffice/phpspreadsheet" : "~1.20",
+        "aws/aws-sdk-php" : "3.195.1"
+	}
+}
