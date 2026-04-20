@@ -1,11 +1,11 @@
 <?php
 /* 
 Plugin Name: Admin Toolkit
-Plugin URI: https://isaacespinoza.com
+Plugin URI: https://laq.cl
 Description: Admin Toolkit - de Marca Chile
 Version: 1.0
-Author: Isaac Espinoza
-Author URI: https://isaacespinoza.com
+Author: La Q
+Author URI: https://laq.cl
 */ 
 
 //Evita que un usuario malintencionado ejecute codigo php desde la barra del navegador
