@@ -39,7 +39,6 @@ jobs:
           key: ${{ secrets.PROD_SSH_KEY }}
           source: "."
           target: "/srv/www/marcachile/toolkit/wp-content/plugins/marcachile-toolkit-s3-plugin"
-          exclude: ".git/**,.github/**"
 
       - name: 🔒 Cerrar puerto en el cortafuegos de AWS
         if: always()
