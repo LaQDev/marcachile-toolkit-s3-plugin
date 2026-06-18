@@ -12,6 +12,9 @@ jobs:
       - name: 🚚 Obtener código del repositorio
         uses: actions/checkout@v3
 
+      - name: 🔧 Instalar lftp
+        run: sudo apt-get install -y lftp
+
       - name: 🚀 Subir archivos del Plugin por SFTP
         run: |
           lftp -c "
