@@ -12,10 +12,17 @@ jobs:
       - name: 🚚 Obtener código del repositorio
         uses: actions/checkout@v3
 
+      - name: 📦 Detectar cambios en dependencias Composer
+        id: vendor-cache
+        uses: actions/cache@v3
+        with:
+          path: vendor
+          key: vendor-${{ hashFiles('composer.lock') }}
+
       - name: 🔧 Instalar lftp
         run: sudo apt-get install -y lftp
 
-      - name: 🚀 Subir archivos del Plugin por SFTP
+      - name: 🚀 Subir archivos del Plugin por SFTP (sin vendor)
         run: |
           lftp -c "
             set sftp:auto-confirm yes;
@@ -24,6 +31,19 @@ jobs:
             mirror -R --delete \
               --exclude .git/ \
               --exclude .github/ \
+              --exclude vendor/ \
               . /home/dh_4wwubs/toolkitmarcachile.laq.cl/wp-content/plugins/marcachile-toolkit-s3-plugin;
+            bye
+          "
+
+      - name: 📦 Subir vendor (solo si composer.lock cambió)
+        if: steps.vendor-cache.outputs.cache-hit != 'true'
+        run: |
+          lftp -c "
+            set sftp:auto-confirm yes;
+            set net:max-retries 3;
+            open sftp://${{ secrets.SFTP_USERNAME }}:${{ secrets.SFTP_PASSWORD }}@${{ secrets.SFTP_SERVER }};
+            mirror -R --delete \
+              vendor /home/dh_4wwubs/toolkitmarcachile.laq.cl/wp-content/plugins/marcachile-toolkit-s3-plugin/vendor;
             bye
           "
