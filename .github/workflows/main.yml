@@ -13,11 +13,14 @@ jobs:
         uses: actions/checkout@v3
 
       - name: 🚀 Subir archivos del Plugin por SFTP
-        uses: wangyucode/sftp-upload-action@v2.0.2
-        with:
-          host: ${{ secrets.SFTP_SERVER }}
-          username: ${{ secrets.SFTP_USERNAME }}
-          password: ${{ secrets.SFTP_PASSWORD }}
-          localDir: '.'
-          remoteDir: '/home/dh_4wwubs/toolkitmarcachile.laq.cl/wp-content/plugins/marcachile-toolkit-s3-plugin'
-          exclude: '.git/**,.github/**'
+        run: |
+          lftp -c "
+            set sftp:auto-confirm yes;
+            set net:max-retries 3;
+            open sftp://${{ secrets.SFTP_USERNAME }}:${{ secrets.SFTP_PASSWORD }}@${{ secrets.SFTP_SERVER }};
+            mirror -R --delete \
+              --exclude .git/ \
+              --exclude .github/ \
+              . /home/dh_4wwubs/toolkitmarcachile.laq.cl/wp-content/plugins/marcachile-toolkit-s3-plugin;
+            bye
+          "
