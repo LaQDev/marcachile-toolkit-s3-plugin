@@ -34,14 +34,21 @@ $myListTable->display();
 echo '</div>';
 ?>
 
+<?php $download_nonce = wp_create_nonce( 'ietk_download_usuarios_nonce' ); ?>
 <script>
     jQuery(document).ready(function($){
         $("#btnDownload").click(function(e) {
             var begin_date = $("#begin_date").val();
             var end_date = $("#end_date").val();
             var s = $("#search_id-search-input").val();
-            let url = "/admin-toolkit-downloads/download-usuarios.php?begin_date=" + begin_date + "&end_date=" + end_date + "&s=" + s;
-            window.location.href = (url);
+            var params = new URLSearchParams({
+                action:     "ietk_download_usuarios",
+                nonce:      "<?php echo esc_js( $download_nonce ); ?>",
+                begin_date: begin_date,
+                end_date:   end_date,
+                s:          s
+            });
+            window.location.href = ajaxurl + "?" + params.toString();
         });
     });
 </script>

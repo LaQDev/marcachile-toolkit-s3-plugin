@@ -317,9 +317,9 @@ function ietk_listarArchivos( $path, $tipo=null ){
 } 
 
 
-function ietk_nombre_de_categoria($categoria){  
+function ietk_nombre_de_categoria($categoria){
     $nombre_cat="";
-    if(($categoria=="imagen")||($categoria=="imagenes")){ 
+    if(($categoria=="imagen")||($categoria=="imagenes")){
       $nombre_cat="Imágenes";
     }
     if($categoria=="videos"){
@@ -333,40 +333,107 @@ function ietk_nombre_de_categoria($categoria){
     }
     if($categoria=="infografias"){
       $nombre_cat="Infografías";
-    } 
+    }
     if($categoria=="fondos de reuniones"){
       $nombre_cat="Fondos de reuniones";
-    } 
+    }
     if($categoria=="lineamientos graficos"){
       $nombre_cat="Lineamientos gráficos";
-    } 
+    }
     if($categoria=="campanas"){
       $nombre_cat="Campañas";
-    } 
+    }
     if($categoria=="estudios"){
       $nombre_cat="Estudios";
-    } 
+    }
     if($categoria=="Chilenas Creando Futuro"){
       $nombre_cat="Chilenas Creando Futuro";
-    } 
+    }
     if($categoria=="Creando Futuro I"){
       $nombre_cat="Creando Futuro I";
-    } 
+    }
     if($categoria=="Creando Futuro II"){
       $nombre_cat="Creando Futuro II";
-    } 
+    }
     if($categoria=="Chile Inspira"){
       $nombre_cat="Chile Inspira";
-    } 
+    }
     if($categoria=="COP"){
       $nombre_cat="COP";
-    } 
+    }
     if($categoria=="Eclipse Antártica"){
       $nombre_cat="Eclipse Antártica";
-    } 
+    }
     if($categoria=="Red Creadores de Futuro"){
       $nombre_cat="Red Creadores de Futuro";
-    } 
-    return $nombre_cat;  
-  } 
+    }
+    return $nombre_cat;
+  }
   add_action( 'wp_ajax_ietk_nombre_de_categoria', 'ietk_nombre_de_categoria' );
+
+
+/**
+ * Descarga CSV de usuarios registrados.
+ * Endpoint: admin-ajax.php?action=ietk_download_usuarios
+ */
+function ietk_download_usuarios() {
+    if ( ! check_ajax_referer( 'ietk_download_usuarios_nonce', 'nonce', false )
+        || ! current_user_can( 'manage_options' ) ) {
+        wp_die( 'No autorizado', '', [ 'response' => 403 ] );
+    }
+
+    global $wpdb;
+
+    $begin_date = isset( $_REQUEST['begin_date'] ) ? sanitize_text_field( $_REQUEST['begin_date'] ) : '';
+    $end_date   = isset( $_REQUEST['end_date'] )   ? sanitize_text_field( $_REQUEST['end_date'] )   : '';
+    $search     = isset( $_REQUEST['s'] )          ? sanitize_text_field( $_REQUEST['s'] )          : '';
+
+    $where = 'WHERE TRUE';
+
+    if ( $begin_date && $end_date ) {
+        $where .= $wpdb->prepare(
+            ' AND user_registered BETWEEN %s AND %s',
+            $begin_date . ' 00:00:00',
+            $end_date   . ' 23:59:59'
+        );
+    }
+
+    if ( $search ) {
+        $like   = '%' . $wpdb->esc_like( $search ) . '%';
+        $where .= $wpdb->prepare(
+            ' AND (display_name LIKE %s OR user_email LIKE %s)',
+            $like,
+            $like
+        );
+    }
+
+    $usuarios = $wpdb->get_results(
+        "SELECT ID, display_name, user_email, user_registered FROM {$wpdb->users} {$where} ORDER BY ID DESC",
+        ARRAY_A
+    );
+
+    $filename = 'usuarios-toolkit-' . date( 'Y-m-d_H-i-s' ) . '.csv';
+
+    header( 'Content-Type: text/csv; charset=utf-8' );
+    header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
+    header( 'Cache-Control: max-age=0' );
+    header( 'Set-Cookie: fileDownload=true; path=/' );
+
+    $output = fopen( 'php://output', 'w' );
+    fputs( $output, "\xEF\xBB\xBF" ); // BOM UTF-8 para Excel
+
+    fputcsv( $output, [ 'ID', 'Nombre', 'Email', 'Fecha de Registro' ], ';' );
+
+    foreach ( $usuarios as $usuario ) {
+        fputcsv( $output, [
+            $usuario['ID'],
+            $usuario['display_name'],
+            $usuario['user_email'],
+            $usuario['user_registered'],
+        ], ';' );
+    }
+
+    fclose( $output );
+    exit;
+}
+add_action( 'wp_ajax_ietk_download_usuarios', 'ietk_download_usuarios' );
