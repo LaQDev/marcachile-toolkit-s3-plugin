@@ -57,6 +57,49 @@ function ietk_get_s3_bucket() {
     return get_option( 'admin_toolkit_s3_bucket', 'cdn.marcachile2.redon.cl' );
 }
 
+/**
+ * Reconstruye un Key de S3 saneando solo el nombre de archivo (última parte),
+ * conservando la carpeta tal cual. Usado por la herramienta de reparación de
+ * archivos ya subidos con nombres no representables en ISO-8859-1.
+ */
+function ietk_construir_key_saneada( $key ) {
+    $key      = ltrim( $key, '/' );
+    $carpeta  = dirname( $key );
+    $archivo  = basename( $key );
+    $limpio   = ietk_sanitize_filename_ascii( $archivo );
+
+    if ( '' === $carpeta || '.' === $carpeta ) {
+        return $limpio;
+    }
+    return $carpeta . '/' . $limpio;
+}
+
+/**
+ * Dado un Key candidato, devuelve uno libre en el bucket (agrega -2, -3, ...
+ * antes de la extensión si ya existe algo con ese nombre).
+ */
+function ietk_evitar_colision_s3( $s3, $bucket, $key ) {
+    $carpeta  = dirname( $key );
+    $carpeta  = ( '' === $carpeta || '.' === $carpeta ) ? '' : $carpeta . '/';
+    $base     = pathinfo( $key, PATHINFO_FILENAME );
+    $ext      = pathinfo( $key, PATHINFO_EXTENSION );
+
+    $intento = $key;
+    $sufijo  = 1;
+    while ( true ) {
+        try {
+            $s3->headObject( [ 'Bucket' => $bucket, 'Key' => $intento ] );
+        } catch ( Aws\S3\Exception\S3Exception $e ) {
+            if ( 404 === $e->getStatusCode() ) {
+                return $intento;
+            }
+            throw $e;
+        }
+        $sufijo++;
+        $intento = $carpeta . $base . '-' . $sufijo . ( $ext ? '.' . $ext : '' );
+    }
+}
+
 /**********************************************************************************************************/
 /******************************************************************************** FORM UPLOAD CSV ***********/
 /**********************************************************************************************************/  
@@ -941,28 +984,30 @@ function ietk_form_upload_archivos_toolkit() {
         $file_ary = ietk_reArrayFiles($_FILES['archivos']);                  
         foreach ($file_ary as $file) {   
 
-            //echo "file_ary - ".$file['name']."<br />"; 
+            //echo "file_ary - ".$file['name']."<br />";
+            $nombre_archivo = ietk_sanitize_filename_ascii( $file['name'] );
+
             $dir_subida = rtrim( ABSPATH, '/' ) . '/_tk_para_subir/';
-            $fichero_subido = $dir_subida . basename($file['name']);
+            $fichero_subido = $dir_subida . $nombre_archivo;
 
             $path = $file['name'];
-            $ext = pathinfo($path, PATHINFO_EXTENSION); 
+            $ext = pathinfo($path, PATHINFO_EXTENSION);
 
             if(file_exists($fichero_subido)) {
                 //chmod($fichero_subido,0755); //Change the file permissions if allowed
                 unlink($fichero_subido); //remove the file
             }
 
-            if (move_uploaded_file($file['tmp_name'], $fichero_subido)) { 
-                echo "<h2>El archivo es válido y se subió con éxito.</h2>"; 
-                echo "archivo: ".basename($file['name'])."<br /><br />"; 
-            } else {  
-                echo "<h2>Error al subir archivo!</h2>"; 
-                echo "archivo: ".basename($file['name'])."<br /><br />"; 
-            }  
+            if (move_uploaded_file($file['tmp_name'], $fichero_subido)) {
+                echo "<h2>El archivo es válido y se subió con éxito.</h2>";
+                echo "archivo: ".$nombre_archivo."<br /><br />";
+            } else {
+                echo "<h2>Error al subir archivo!</h2>";
+                echo "archivo: ".$nombre_archivo."<br /><br />";
+            }
 
-            $keyname = "descargas/".$categoria."/"; 
-            $ruta_file_s3=$keyname.basename($file['name']);      
+            $keyname = "descargas/".$categoria."/";
+            $ruta_file_s3=$keyname.$nombre_archivo;
 
             //echo "<h2>ruta_file_s3 ".$ruta_file_s3."</h2>";
             $s3_bucket = isset($_ENV["APP_ENV"]) && $_ENV["APP_ENV"] == "prod" ? "cdn.toolkit.cl" : 'cdn.toolkit.cl';
@@ -978,13 +1023,13 @@ function ietk_form_upload_archivos_toolkit() {
                 //echo $e->getMessage() . PHP_EOL;
             } 
 
-            $ruta_local="../_tk_para_subir/".basename($file['name']).""; 
+            $ruta_local="../_tk_para_subir/".$nombre_archivo."";
             //echo "<h2>ruta_local ".$ruta_local."</h2>"; 
             $ext = pathinfo($ruta_local, PATHINFO_EXTENSION); 
             //echo "<h2>ext ".$ext."</h2>"; 
 
             if($existe_archivo==1){
-                $nombre_reemplaza=str_replace(".".$ext,"-".time().".".$ext,basename($file['name']));
+                $nombre_reemplaza=str_replace(".".$ext,"-".time().".".$ext,$nombre_archivo);
                 $ruta_file_s3=$keyname.$nombre_reemplaza; 
             }
             //echo "<h2>ruta_file_s3 ".$ruta_file_s3."</h2>"; 
@@ -1040,7 +1085,7 @@ function ietk_s3_get_simple_presigned_url() {
     check_ajax_referer( 'admin_toolkit_s3_nonce', 'nonce' );
     if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( ['message' => 'Sin permisos'], 403 );
 
-    $filename     = sanitize_file_name( $_POST['filename'] ?? '' );
+    $filename     = ietk_sanitize_filename_ascii( $_POST['filename'] ?? '' );
     $carpeta      = sanitize_text_field( $_POST['carpeta'] ?? '' );
     $content_type = sanitize_text_field( $_POST['content_type'] ?? 'application/octet-stream' );
 
@@ -1097,7 +1142,7 @@ function ietk_s3_initiate_multipart() {
     check_ajax_referer( 'admin_toolkit_s3_nonce', 'nonce' );
     if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( ['message' => 'Sin permisos'], 403 );
 
-    $filename     = sanitize_file_name( $_POST['filename'] ?? '' );
+    $filename     = ietk_sanitize_filename_ascii( $_POST['filename'] ?? '' );
     $carpeta      = sanitize_text_field( $_POST['carpeta'] ?? '' );
     $content_type = sanitize_text_field( $_POST['content_type'] ?? 'application/octet-stream' );
 
