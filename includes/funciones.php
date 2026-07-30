@@ -102,6 +102,14 @@ function ietk_menu_administrador() {
 	'admin-toolkit-settings',
 	'ietk_render_settings_page'
 	);
+	add_submenu_page(
+	'edit.php?post_type=toolkit',
+	'Reparar nombres de archivo en S3',
+	'Reparar nombres S3',
+	'manage_options',
+	'admin-toolkit-reparar-nombres-s3',
+	'ietk_render_reparar_nombres_s3_page'
+	);
 }
 add_action( 'admin_menu', 'ietk_menu_administrador' ); 
 
@@ -124,13 +132,51 @@ function ietk_rgp2($objeto){
 }   
 
   
-function ietk_clean_var2($var){ 
-    $re_var = str_replace(" ", "_", $var);	
-    $re_var = str_replace("-", "_", $re_var); 	
+function ietk_clean_var2($var){
+    $re_var = str_replace(" ", "_", $var);
+    $re_var = str_replace("-", "_", $re_var);
     $vowels = array("á", "é", "í", "ó", "ú", "Á", "É", "Í", "Ó", "Ú");
-    $onlyconsonants = str_replace($vowels, "", $re_var);	
-    return $re_var; 
-} 
+    $onlyconsonants = str_replace($vowels, "", $re_var);
+    return $re_var;
+}
+
+/**
+ * Sanea un nombre de archivo para que quede 100% representable en ISO-8859-1.
+ * S3 exige eso para el header response-content-disposition al descargar, y
+ * falla incluso con tildes/ñ "normales" si el archivo se subió desde un Mac,
+ * donde el sistema de archivos guarda los acentos en forma NFD (la "ó" es en
+ * realidad "o" + un acento combinable aparte, que no es ISO-8859-1 aunque se
+ * vea igual). Por eso se normaliza a NFC antes de quitar acentos.
+ */
+function ietk_sanitize_filename_ascii( $filename ) {
+    $filename = (string) $filename;
+
+    if ( class_exists( 'Normalizer' ) ) {
+        $normalizado = Normalizer::normalize( $filename, Normalizer::FORM_C );
+        if ( false !== $normalizado ) {
+            $filename = $normalizado;
+        }
+    }
+
+    // Por si el string sigue en forma NFD (sin extensión intl disponible).
+    $filename = preg_replace( '/\p{Mn}/u', '', $filename );
+    // Convierte acentos/ñ precompuestos a su equivalente ASCII (usa el mapa de WordPress).
+    $filename = remove_accents( $filename );
+    // Cualquier otro caracter no-ASCII remanente (emojis, comillas tipográficas, etc.).
+    $filename = preg_replace( '/[^\x20-\x7E]/', '', $filename );
+
+    // Si el nombre era enteramente no-latino (ej. chino, árabe), a esta altura
+    // solo queda la extensión: se revisa acá, antes de sanitize_file_name(),
+    // porque esta puede recortar un punto inicial y falsear el pathinfo().
+    $ext    = pathinfo( $filename, PATHINFO_EXTENSION );
+    $nombre = pathinfo( $filename, PATHINFO_FILENAME );
+    if ( '' === trim( $nombre ) ) {
+        $nombre   = 'archivo-' . substr( md5( uniqid( '', true ) ), 0, 8 );
+        $filename = $ext ? "{$nombre}.{$ext}" : $nombre;
+    }
+
+    return sanitize_file_name( $filename );
+}
 
 function ietk_val_vacio2($valor){
     $re_valor = $valor;		

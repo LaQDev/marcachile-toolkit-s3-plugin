@@ -33,6 +33,10 @@ function ietk_render_settings_page() {
     require_once plugin_dir_path( __FILE__ ) . 'admin/settings.php';
 }
 
+function ietk_render_reparar_nombres_s3_page() {
+    require_once plugin_dir_path( __FILE__ ) . 'admin/reparar-nombres-s3.php';
+}
+
 function ietk_sanitize_secret_key( $new ) {
     if ( '' === trim( $new ) ) {
         return get_option( 'admin_toolkit_aws_secret_key', '' );
