@@ -4,46 +4,64 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      full_sync:
+        description: "Subir todos los archivos (no elimina nada en el servidor)"
+        type: boolean
+        default: false
+
+# Evita que dos despliegues escriban a la vez en el servidor.
+concurrency:
+  group: deploy-plugin-preproduction
+  cancel-in-progress: false
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      REMOTE_DIR: /home/dh_4wwubs/toolkitmarcachile.laq.cl/wp-content/plugins/marcachile-toolkit-s3-plugin
     steps:
       - name: 🚚 Obtener código del repositorio
-        uses: actions/checkout@v3
-
-      - name: 📦 Detectar cambios en dependencias Composer
-        id: vendor-cache
-        uses: actions/cache@v3
+        uses: actions/checkout@v4
         with:
-          path: vendor
-          key: vendor-${{ hashFiles('composer.lock') }}
+          fetch-depth: 0
 
       - name: 🔧 Instalar lftp
-        run: sudo apt-get install -y lftp
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq lftp
 
-      - name: 🚀 Subir archivos del Plugin por SFTP (sin vendor)
+      - name: 🔑 Preparar conexión SFTP
+        env:
+          SFTP_SERVER: ${{ secrets.SFTP_SERVER }}
+          SFTP_USERNAME: ${{ secrets.SFTP_USERNAME }}
         run: |
-          lftp -c "
-            set sftp:auto-confirm yes;
-            set net:max-retries 3;
-            open sftp://${{ secrets.SFTP_USERNAME }}:${{ secrets.SFTP_PASSWORD }}@${{ secrets.SFTP_SERVER }};
-            mirror -R --delete \
-              --exclude .git/ \
-              --exclude .github/ \
-              --exclude vendor/ \
-              . /home/dh_4wwubs/toolkitmarcachile.laq.cl/wp-content/plugins/marcachile-toolkit-s3-plugin;
-            bye
-          "
+          {
+            echo 'set cmd:fail-exit yes'
+            echo 'set sftp:auto-confirm yes'
+            echo 'set net:max-retries 3'
+            echo 'set net:timeout 30'
+            echo "open --env-password -u \"$SFTP_USERNAME\" sftp://$SFTP_SERVER"
+          } > "$RUNNER_TEMP/conexion.lftp"
 
-      - name: 📦 Subir vendor (solo si composer.lock cambió)
-        if: steps.vendor-cache.outputs.cache-hit != 'true'
+      - name: 🔎 Leer revisión desplegada en preproducción
+        id: remota
+        if: ${{ !inputs.full_sync }}
+        env:
+          LFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
+        # Se usa get y no cat: con cmd:fail-exit, un cat fallido deja a lftp 4.9 colgado.
         run: |
-          lftp -c "
-            set sftp:auto-confirm yes;
-            set net:max-retries 3;
-            open sftp://${{ secrets.SFTP_USERNAME }}:${{ secrets.SFTP_PASSWORD }}@${{ secrets.SFTP_SERVER }};
-            mirror -R --delete \
-              vendor /home/dh_4wwubs/toolkitmarcachile.laq.cl/wp-content/plugins/marcachile-toolkit-s3-plugin/vendor;
-            bye
-          "
+          lftp -c "source $RUNNER_TEMP/conexion.lftp; set cmd:fail-exit no; get \"$REMOTE_DIR/.deploy-revision\" -o \"$RUNNER_TEMP/revision-remota\"" || true
+          rev=$(cat "$RUNNER_TEMP/revision-remota" 2>/dev/null | tr -dc '0-9a-f' | cut -c1-40 || true)
+          echo "revision=$rev" >> "$GITHUB_OUTPUT"
+          echo "Revisión en preproducción: ${rev:-ninguna}"
+
+      - name: 📋 Calcular cambios
+        run: |
+          bash .github/scripts/sftp-plan.sh "${{ steps.remota.outputs.revision }}" "$GITHUB_SHA" "$REMOTE_DIR" "$RUNNER_TEMP/plan.lftp" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: 🚀 Sincronizar con preproducción
+        env:
+          LFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
+        run: |
+          cat "$RUNNER_TEMP/conexion.lftp" "$RUNNER_TEMP/plan.lftp" > "$RUNNER_TEMP/deploy.lftp"
+          lftp -f "$RUNNER_TEMP/deploy.lftp"
